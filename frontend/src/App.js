@@ -6,86 +6,57 @@ function App() {
   const [task, setTask] = useState("");
   const [editId, setEditId] = useState(null);
 
-  // Fetch todos
+  // Load from localStorage
   useEffect(() => {
-    fetch("http://localhost:5000/api/todos")
-      .then(res => res.json())
-      .then(data => setTodos(data));
+    const saved = JSON.parse(localStorage.getItem("todos"));
+    if (saved) setTodos(saved);
   }, []);
 
-  // Add or Update todo
+  // Save to localStorage
+  useEffect(() => {
+    localStorage.setItem("todos", JSON.stringify(todos));
+  }, [todos]);
+
   const addTodo = () => {
     if (!task) return;
 
-    // EDIT
     if (editId) {
-      fetch(`http://localhost:5000/api/todos/${editId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: task, completed: false })
-      }).then(() => {
-        setTodos(
-          todos.map(t =>
-            t.id === editId ? { ...t, title: task } : t
-          )
-        );
-        setEditId(null);
-        setTask("");
-      });
-    }
-    // ADD
-    else {
-      fetch("http://localhost:5000/api/todos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: task })
-      })
-        .then(res => res.json())
-        .then(newTodo => {
-          setTodos([...todos, newTodo]);
-          setTask("");
-        });
-    }
-  };
-
-  // Delete todo
-  const deleteTodo = (id) => {
-    fetch(`http://localhost:5000/api/todos/${id}`, {
-      method: "DELETE"
-    }).then(() => {
-      setTodos(todos.filter(t => t.id !== id));
-    });
-  };
-
-  // Toggle complete
-  const toggleComplete = (todo) => {
-    fetch(`http://localhost:5000/api/todos/${todo.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: todo.title,
-        completed: !todo.completed
-      })
-    }).then(() => {
       setTodos(
         todos.map(t =>
-          t.id === todo.id
-            ? { ...t, completed: !t.completed }
-            : t
+          t.id === editId ? { ...t, title: task } : t
         )
       );
-    });
+      setEditId(null);
+    } else {
+      setTodos([
+        ...todos,
+        { id: Date.now(), title: task, completed: false }
+      ]);
+    }
+    setTask("");
+  };
+
+  const deleteTodo = (id) => {
+    setTodos(todos.filter(t => t.id !== id));
+  };
+
+  const toggleComplete = (id) => {
+    setTodos(
+      todos.map(t =>
+        t.id === id ? { ...t, completed: !t.completed } : t
+      )
+    );
   };
 
   return (
     <div className="app">
-      <h1>✨ My Todo App</h1>
+      <h1>✨ Todo App</h1>
 
       <div className="input-box">
         <input
           value={task}
-          onChange={(e) => setTask(e.target.value)}
-          placeholder="Enter your task"
+          onChange={e => setTask(e.target.value)}
+          placeholder="Enter task"
         />
         <button onClick={addTodo}>
           {editId ? "Update" : "Add"}
@@ -98,7 +69,7 @@ function App() {
             key={todo.id}
             className={todo.completed ? "done" : ""}
           >
-            <span onClick={() => toggleComplete(todo)}>
+            <span onClick={() => toggleComplete(todo.id)}>
               {todo.title}
             </span>
 
